@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\OutputsExport;
 
 class OutputController extends Controller {
@@ -49,24 +50,7 @@ class OutputController extends Controller {
                 $downloadType = $request->input('download');
     
                 if ($downloadType === 'pdf') {
-                    $htmlContent = view('outputs.pdf', compact('outputs'))->render();
-                    $htmlFilePath = storage_path('temp/outputs_temp_file.html');
-                    file_put_contents($htmlFilePath, $htmlContent);
-    
-                    if (!file_exists($htmlFilePath)) {
-                        return redirect()->back()->with('error', 'Error al generar el archivo HTML');
-                    }
-    
-                    $pdfFilePath = storage_path('temp/Salidas.pdf');
-                    $command = '"' . env('WKHTMLTOPDF_PATH') . '" --lowquality "file:///' . $htmlFilePath . '" "' . $pdfFilePath . '"';
-    
-                    exec($command, $output, $returnVar);
-    
-                    if ($returnVar === 0) {
-                        return response()->download($pdfFilePath)->deleteFileAfterSend(true);
-                    } else {
-                        return redirect()->back()->with('error', 'Error al generar el PDF');
-                    }
+                    return $this->generatePDF($request);
                 } elseif ($downloadType === 'month_pdf') {
                     $monthResponse = Http::withToken($token)->withOptions(['verify' => false])->get($apiGetCountMonthOutputUrl);
     
@@ -154,5 +138,42 @@ class OutputController extends Controller {
         }
     
         return redirect()->back()->with('error', 'Error al obtener las salidas de la API');
+    }
+
+    public function generatePDF(Request $request)
+    {
+        try {
+            $token = $request->session()->get('token');
+            $baseApiUrl = config('app.backend_api');
+
+            // Obtener TODAS las salidas sin paginación
+            $apiUrl = $baseApiUrl . '/api/outputs?per_page=1000';
+            $response = Http::withToken($token)->withOptions(['verify' => false])->get($apiUrl);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Manejar estructura de datos
+                if (is_array($data) && array_key_exists('data', $data)) {
+                    $outputs = $data['data'];
+                } else {
+                    $outputs = $data;
+                }
+
+                if (empty($outputs)) {
+                    return back()->with('error', 'No hay salidas para generar el PDF.');
+                }
+
+                $pdf = Pdf::loadView('outputs.pdf', compact('outputs'));
+                $pdf->setPaper('A4', 'landscape');
+                return $pdf->download('salidas-' . date('Y-m-d') . '.pdf');
+
+            } else {
+                return back()->with('error', 'Error al obtener las salidas de la API');
+            }
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
     }
 }

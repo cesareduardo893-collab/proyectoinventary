@@ -46,12 +46,28 @@
                                 <td>{{ $product['description'] ?? 'N/A' }}</td>
                                 <td>${{ number_format($product['price'], 2, '.', ',') }}</td>
                                 <td>{{ $product['observations'] ?? 'N/A' }}</td>
-                                <td>{{ $product['category']['name'] }}</td>
-                                <td>{{ $product['supplier']['company'] ?? 'N/A' }}</td>
+                                <td>{{ $product['category']['name'] ?? ($product['category_id'] ? 'Categoría ID: ' . $product['category_id'] : 'N/A') }}</td>
+                                <td>
+                                    @if(isset($product['supplier']['nombre_razon_social']))
+                                        {{ $product['supplier']['nombre_razon_social'] }}
+                                    @elseif(isset($product['supplier']['company']))
+                                        {{ $product['supplier']['company'] }}
+                                    @elseif($product['supplier_id'])
+                                        Proveedor ID: {{ $product['supplier_id'] }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
                                 <td>{{ $product['location'] ?? 'N/A' }}</td>
                                 <td>{{ number_format($product['quantity'] ?? 0, 0, '.', ',') }}</td>
                                 <td>
-                                    <img src="{{ config('app.backend_api') }}/{{ isset($product['profile_image']) ? $product['profile_image'] : 'ruta_por_defecto_de_la_imagen.jpg' }}" alt="Sin Imagen" width="100" style="border-radius: 10px;">
+                                    @if(isset($product['profile_image']) && $product['profile_image'])
+                                        <img src="{{ config('app.backend_api') }}/{{ $product['profile_image'] }}" alt="Imagen del producto" width="100" style="border-radius: 10px;">
+                                    @else
+                                        <div style="width: 100px; height: 100px; background: #f8f9fa; border: 1px dashed #dee2e6; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
+                                            Sin Imagen
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

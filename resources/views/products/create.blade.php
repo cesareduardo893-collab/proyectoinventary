@@ -1,433 +1,411 @@
-@extends('layouts.app')
-
-@section('title', 'Crear producto')
-
-@section('content')
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crear Producto</title>
+    <title>Alta de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link href="{{ asset('css/forms.css') }}" rel="stylesheet">
-<div class="container employee-form-container">
+    <style>
+        .product-form-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 900px;
+        }
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #007bff;
+        }
+        .form-section h5 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+        .image-preview-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .btn-custom {
+            padding: 10px 25px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .btn-custom-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+        }
+        .btn-custom-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+        .btn-custom-secondary {
+            background: linear-gradient(45deg, #6c757d, #545b62);
+            border: none;
+            color: white;
+        }
+        .btn-custom-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108,117,125,0.3);
+            color: white;
+        }
+        .form-control, .form-select {
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+            transform: translateY(-1px);
+        }
+        .price-input-group {
+            position: relative;
+        }
+        .price-input-group::before {
+            content: "$";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #495057;
+            font-weight: bold;
+            z-index: 3;
+        }
+        .price-input-group input {
+            padding-left: 30px;
+        }
+        .is-valid {
+            border-color: #28a745 !important;
+        }
+        .is-invalid {
+            border-color: #dc3545 !important;
+        }
+        .invalid-feedback {
+            display: block;
+        }
+        .hidden-field {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container employee-form-container">
-        <h1 class="form-title">Crear Producto</h1>
-        
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+    <div class="container-fluid py-4">
+        <div class="product-form-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="fas fa-box text-primary me-2"></i>Alta de Productos</h2>
+                <a href="{{ route('products.index') }}" class="btn btn-custom-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Inventario
+                </a>
             </div>
-        @endif
 
-        <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data" novalidate id="productForm">
-            @csrf
-            <input type="hidden" name="redirect_to_output" id="redirect_to_output" value="0">
-            
-            <div class="form-section">
-                <h5 class="form-section-title">Información Básica del Producto</h5>
-                <div class="form-table">
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Nombre:</label>
-                            <input type="text" id="name" name="name" value="{{ old('name') }}" required class="form-control @error('name') is-invalid @enderror">
-                            @error('name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            <!-- Debug info (puedes remover esto después) -->
+            @if(empty($suppliers) || empty($categories) || empty($locations))
+                <div class="alert alert-warning">
+                    <strong>Debug Info:</strong><br>
+                    Categorías: {{ count($categories ?? []) }}<br>
+                    Proveedores: {{ count($suppliers ?? []) }}<br>
+                    Ubicaciones: {{ count($locations ?? []) }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                @csrf
+
+                <!-- Campo cantidad oculto con valor 0 -->
+                <input type="hidden" id="quantity" name="quantity" value="0">
+
+                <!-- Sección de Información Básica -->
+                <div class="form-section">
+                    <h5><i class="fas fa-info-circle me-2"></i>Información Básica</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label required-field">Nombre del Producto</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required maxlength="50">
+                            <div class="invalid-feedback">Por favor ingresa el nombre del producto.</div>
                         </div>
-                        <div class="form-cell">
-                            <label class="form-label">Marca:</label>
-                            <input type="text" id="brand" name="brand" value="{{ old('brand') }}" required class="form-control @error('brand') is-invalid @enderror">
-                            @error('brand')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Modelo:</label>
-                            <input type="text" id="model" name="model" value="{{ old('model') }}" class="form-control @error('model') is-invalid @enderror">
-                            @error('model')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="checkbox-group">
-                                <input type="checkbox" class="form-check-input" id="noModelCheck" name="noModelCheck">
-                                <label for="noModelCheck" class="form-check-label">Sin modelo</label>
-                            </div>
-                        </div>
-                        <div class="form-cell">
-                            <label class="form-label">Unidad de medida:</label>
-                            <input type="text" id="measurement_unit" name="measurement_unit" value="{{ old('measurement_unit') }}" class="form-control @error('measurement_unit') is-invalid @enderror">
-                            @error('measurement_unit')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="checkbox-group">
-                                <input type="checkbox" class="form-check-input" id="noMeasurementUnitCheck" name="noMeasurementUnitCheck">
-                                <label for="noMeasurementUnitCheck" class="form-check-label">Sin unidad de medida</label>
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="brand" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="brand" name="brand" value="{{ old('brand') }}" maxlength="50">
                         </div>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Número de serie:</label>
-                            <input type="text" id="serie" name="serie" value="{{ old('serie') }}" class="form-control @error('serie') is-invalid @enderror">
-                            @error('serie')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="checkbox-group">
-                                <input type="checkbox" class="form-check-input" id="noSerieCheck" name="noSerieCheck">
-                                <label for="noSerieCheck" class="form-check-label">Sin número de serie</label>
-                            </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="model" class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="model" name="model" value="{{ old('model') }}" maxlength="50">
                         </div>
-                        <div class="form-cell">
-                            <label class="form-label">Ubicación:</label>
-                            <input type="text" id="location" name="location" value="{{ old('location') }}" required class="form-control @error('location') is-invalid @enderror">
-                            @error('location')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                        <div class="col-md-6 mb-3">
+                            <label for="serie" class="form-label">Número de Serie</label>
+                            <input type="text" class="form-control" id="serie" name="serie" value="{{ old('serie') }}" maxlength="40">
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="form-section">
-                <h5 class="form-section-title">Detalles del Producto</h5>
-                <div class="form-table">
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Cantidad:</label>
-                            <input type="text" id="formattedQuantity" class="form-control" value="{{ old('quantity') ? number_format(old('quantity')) : '' }}" required>
-                            <input type="hidden" id="quantity" name="quantity" value="{{ old('quantity') }}" required>
-                            @error('quantity')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+
+                <!-- Sección de Inventario y Precio -->
+                <div class="form-section">
+                    <h5><i class="fas fa-calculator me-2"></i>Inventario y Precio</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="measurement_unit" class="form-label">Unidad de Medida</label>
+                            <input type="text" class="form-control" id="measurement_unit" name="measurement_unit" value="{{ old('measurement_unit') }}" maxlength="15">
                         </div>
-                        <div class="form-cell">
-                            <label class="form-label">Precio:</label>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">$</span>
-                                </div>
-                                <input type="text" id="formattedPrice" class="form-control" value="{{ old('price') ? number_format(old('price'), 2) : '0.00' }}" required>
-                                <input type="hidden" id="price" name="price" value="{{ old('price') }}" required>
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label required-field">Precio</label>
+                            <div class="price-input-group">
+                                <input type="text" class="form-control" id="price" name="price" value="{{ old('price') }}" required>
                             </div>
-                            @error('price')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <div class="invalid-feedback">Por favor ingresa el precio.</div>
                         </div>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Categoría:</label>
-                            <select id="category_id" name="category_id" class="form-control @error('category_id') is-invalid @enderror" required>
-                                <option value="">Seleccione una categoría</option>
-                                @if (count($categories) > 0)
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category['id'] }}" {{ old('category_id') == $category['id'] ? 'selected' : '' }}>{{ $category['name'] }}</option>
-                                    @endforeach
-                                @endif
+                </div>
+
+                <!-- Sección de Categorización -->
+                <div class="form-section">
+                    <h5><i class="fas fa-tags me-2"></i>Categorización</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="category_id" class="form-label required-field">Categoría</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">Selecciona una categoría</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category['id'] }}" {{ old('category_id') == $category['id'] ? 'selected' : '' }}>
+                                        {{ $category['name'] }}
+                                    </option>
+                                @endforeach
                             </select>
-                            @error('category_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <div class="invalid-feedback">Por favor selecciona una categoría.</div>
                         </div>
-                        <div class="form-cell">
-                            <label class="form-label">Proveedor:</label>
-                            <select id="supplier_id" name="supplier_id" class="form-control @error('supplier_id') is-invalid @enderror">
-                                <option value="">Seleccione un proveedor</option>
-                                @if (count($suppliers) > 0)
-                                    @foreach ($suppliers as $supplier)
-                                        <option value="{{ $supplier['id'] }}" {{ old('supplier_id') == $supplier['id'] ? 'selected' : '' }}>{{ $supplier['company'] }}</option>
-                                    @endforeach
-                                @else
-                                    <option value="" disabled>No hay proveedores disponibles</option>
-                                @endif
+                        <div class="col-md-6 mb-3">
+                            <label for="supplier_id" class="form-label">Proveedor</label>
+                            <select class="form-select" id="supplier_id" name="supplier_id">
+                                <option value="">Selecciona un proveedor</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier['id'] }}" {{ old('supplier_id') == $supplier['id'] ? 'selected' : '' }}>
+                                        {{ $supplier['nombre_razon_social'] }}
+                                    </option>
+                                @endforeach
                             </select>
-                            @error('supplier_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="checkbox-group">
-                                <input type="checkbox" class="form-check-input" id="noSupplierCheck" name="noSupplierCheck">
-                                <label for="noSupplierCheck" class="form-check-label">Sin proveedor</label>
-                            </div>
                         </div>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Descripción:</label>
-                            <textarea id="description" name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description') }}</textarea>
-                            @error('description')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="form-cell">
-                            <label class="form-label">Observaciones:</label>
-                            <input type="text" id="observations" name="observations" value="{{ old('observations') }}" class="form-control @error('observations') is-invalid @enderror">
-                            @error('observations')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="checkbox-group">
-                                <input type="checkbox" class="form-check-input" id="noObservationsCheck" name="noObservationsCheck">
-                                <label for="noObservationsCheck" class="form-check-label">Sin observaciones</label>
-                            </div>
+                </div>
+
+                <!-- Sección de Ubicación -->
+                <div class="form-section">
+                    <h5><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h5>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="location_id" class="form-label">Ubicación Detallada</label>
+                            <select class="form-select" id="location_id" name="location_id">
+                                <option value="">Selecciona una ubicación</option>
+                                @foreach($locations as $location)
+                                    <option value="{{ $location['id'] }}" {{ old('location_id') == $location['id'] ? 'selected' : '' }}>
+                                        @if(isset($location['ubicacion_completa']))
+                                            {{ $location['ubicacion_completa'] }}
+                                        @else
+                                            {{ $location['sucursal'] }} - {{ $location['seccion_sucursal'] }} - Estante {{ $location['estante'] }} - Sección {{ $location['seccion_estante'] }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-cell">
-                            <label class="form-label">Imagen:</label>
-                            <input type="file" id="profile_image" name="profile_image" class="form-control @error('profile_image') is-invalid @enderror" onchange="previewImage(event)">
-                            @error('profile_image')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                </div>
+
+                <!-- Sección de Descripción e Imagen -->
+                <div class="form-section">
+                    <h5><i class="fas fa-edit me-2"></i>Descripción e Imagen</h5>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" maxlength="500">{{ old('description') }}</textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="observations" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observations" name="observations" rows="2" maxlength="50">{{ old('observations') }}</textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="profile_image" class="form-label">Imagen del Producto</label>
+                            <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/jpeg,image/png,image/gif,image/svg+xml">
+                            <small class="form-text text-muted">Formatos permitidos: JPEG, PNG, GIF, SVG. Tamaño máximo: 2MB</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
                             <div class="image-preview-container">
-                                <img id="imagePreview" src="#" alt="Vista previa de la imagen">
+                                <img id="imagePreview" src="#" alt="Vista previa de la imagen" class="image-preview" style="display: none;">
+                                <div id="noImagePreview" class="text-muted">
+                                    <i class="fas fa-image fa-3x mb-2"></i>
+                                    <p>Vista previa de la imagen</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-          <div class="d-flex justify-content-end mt-4 btn-group-mobile">
-    <button type="button" onclick="window.history.back()" class="btn btn-secondary mr-2">Cancelar</button>
-    <button type="submit" class="btn btn-agregar" id="btnCrearProducto">Crear Producto</button>
-</div>
-        </form>
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-between align-items-center pt-3">
+                    <a href="{{ route('products.index') }}" class="btn btn-custom-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-custom-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Producto
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('#category_id').select2({
-                placeholder: 'Seleccione una categoría',
-                language: {
-                    noResults: function() {
-                        return 'No hay resultados';
+            // Formatear precio con comas
+            $('#price').on('input', function() {
+                let value = $(this).val().replace(/,/g, '');
+                if (!isNaN(value) && value !== '') {
+                    $(this).val(parseFloat(value).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }));
+                }
+            });
+
+            // Vista previa de imagen
+            $('#profile_image').change(function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#imagePreview').attr('src', e.target.result).show();
+                        $('#noImagePreview').hide();
                     }
-                }
-            }).on('change', function() {
-                if ($(this).val() !== '') {
-                    $(this).removeClass('is-invalid').addClass('is-valid');
-                }
-            });
-
-            $('#supplier_id').select2({
-                placeholder: 'Seleccione un proveedor',
-                language: {
-                    noResults: function() {
-                        return 'No hay resultados';
-                    }
-                }
-            }).on('change', function() {
-                if ($(this).val() !== '') {
-                    $(this).removeClass('is-invalid').addClass('is-valid');
-                }
-            });
-
-            toggleInputDisable('noSupplierCheck', 'supplier_id');
-            toggleInputDisable('noMeasurementUnitCheck', 'measurement_unit');
-            toggleInputDisable('noModelCheck', 'model');
-            toggleInputDisable('noSerieCheck', 'serie');
-            toggleInputDisable('noObservationsCheck', 'observations');
-
-            // Evento para el botón "Crear y Agregar Salida"
-            $('#btnCrearYAgregarSalida').on('click', function() {
-                $('#redirect_to_output').val('1');
-                $('#productForm').submit();
-            });
-
-            // Evento para el botón normal "Crear Producto"
-            $('#btnCrearProducto').on('click', function() {
-                $('#redirect_to_output').val('0');
-            });
-        });
-
-        function previewImage(event) {
-            var reader = new FileReader();
-            reader.onload = function(){
-                var output = document.getElementById('imagePreview');
-                output.src = reader.result;
-                output.style.display = 'block';
-            };
-            reader.readAsDataURL(event.target.files[0]);
-        }
-
-        function toggleInputDisable(checkboxId, inputId) {
-            var checkbox = document.getElementById(checkboxId);
-            var input = document.getElementById(inputId);
-            
-            // Estado inicial
-            if (checkbox.checked) {
-                if ($(input).hasClass('select2-hidden-accessible')) {
-                    $(input).val(null).trigger('change');
+                    reader.readAsDataURL(file);
                 } else {
-                    input.value = '';
+                    $('#imagePreview').hide();
+                    $('#noImagePreview').show();
                 }
-                input.disabled = true;
-                input.removeAttribute('required');
-            }
-            
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    if ($(input).hasClass('select2-hidden-accessible')) {
-                        $(input).val(null).trigger('change');
+            });
+
+            // Validación del formulario
+            const form = document.querySelector('.needs-validation');
+            form.addEventListener('submit', function(event) {
+                let allValid = true;
+
+                // Validar nombre
+                const nameInput = document.getElementById('name');
+                if (!nameInput.value.trim()) {
+                    nameInput.classList.add('is-invalid');
+                    allValid = false;
+                } else {
+                    nameInput.classList.remove('is-invalid');
+                    nameInput.classList.add('is-valid');
+                }
+
+                // Validar precio
+                const priceInput = document.getElementById('price');
+                if (!priceInput.value || isNaN(priceInput.value.replace(/,/g, ''))) {
+                    priceInput.classList.add('is-invalid');
+                    allValid = false;
+                } else {
+                    priceInput.classList.remove('is-invalid');
+                    priceInput.classList.add('is-valid');
+                }
+
+                // Validar categoría
+                const categorySelect = document.getElementById('category_id');
+                if (!categorySelect.value) {
+                    categorySelect.classList.add('is-invalid');
+                    allValid = false;
+                } else {
+                    categorySelect.classList.remove('is-invalid');
+                    categorySelect.classList.add('is-valid');
+                }
+
+                // Asegurar que quantity tenga valor 0
+                const quantityInput = document.getElementById('quantity');
+                quantityInput.value = '0';
+
+                // Remover comas del precio antes de enviar
+                if (allValid) {
+                    priceInput.value = priceInput.value.replace(/,/g, '');
+                } else {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Por favor complete todos los campos requeridos correctamente.');
+                }
+
+                this.classList.add('was-validated');
+            });
+
+            // Validación en tiempo real
+            document.querySelectorAll('.form-control, .form-select').forEach(input => {
+                input.addEventListener('input', function () {
+                    if (this.value && this.value !== '') {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
                     } else {
-                        input.value = '';
+                        this.classList.remove('is-valid');
+                        if (this.hasAttribute('required') && this.classList.contains('was-validated')) {
+                            this.classList.add('is-invalid');
+                        }
                     }
-                    input.disabled = true;
-                    input.removeAttribute('required');
-                    input.classList.remove('is-invalid');
-                } else {
-                    input.disabled = false;
-                    input.setAttribute('required', 'required');
-                }
+                });
+
+                input.addEventListener('change', function () {
+                    if (this.value && this.value !== '') {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        this.classList.remove('is-valid');
+                        if (this.hasAttribute('required') && this.classList.contains('was-validated')) {
+                            this.classList.add('is-invalid');
+                        }
+                    }
+                });
             });
-        }
 
-        function formatNumber(value) {
-            value = value.replace(/,/g, '');
-            if (!isNaN(value) && value !== '') {
-                return parseInt(value).toLocaleString();
-            }
-            return value;
-        }
-
-        function unformatNumber(value) {
-            return value.replace(/,/g, '');
-        }
-
-        function formatPrice(value) {
-            value = value.replace(/,/g, '');
-            if (!isNaN(value) && value !== '') {
-                var parts = value.split('.');
-                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                return parts.join('.');
-            }
-            return value;
-        }
-
-        function unformatPrice(value) {
-            return value.replace(/,/g, '');
-        }
-
-        document.getElementById('formattedQuantity').addEventListener('input', function (e) {
-            var formattedValue = formatNumber(e.target.value);
-            e.target.value = formattedValue;
-            document.getElementById('quantity').value = unformatNumber(formattedValue);
-        });
-
-        document.getElementById('formattedPrice').addEventListener('input', function (e) {
-            var formattedValue = formatPrice(e.target.value);
-            e.target.value = formattedValue;
-            document.getElementById('price').value = unformatPrice(formattedValue);
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var quantityInput = document.getElementById('quantity');
-            var formattedQuantityInput = document.getElementById('formattedQuantity');
-            var initialValue = quantityInput.value;
-            formattedQuantityInput.value = formatNumber(initialValue);
-
-            var priceInput = document.getElementById('price');
-            var formattedPriceInput = document.getElementById('formattedPrice');
-            var initialPriceValue = priceInput.value;
-            formattedPriceInput.value = formatPrice(initialPriceValue);
-        });
-
-        document.getElementById('productForm').addEventListener('submit', function(event) {
-            var inputs = ['supplier_id', 'measurement_unit', 'model', 'serie', 'observations'];
-            var checkboxes = ['noSupplierCheck', 'noMeasurementUnitCheck', 'noModelCheck', 'noSerieCheck', 'noObservationsCheck'];
-            var allValid = true;
-
-            for (var i = 0; i < inputs.length; i++) {
-                var input = document.getElementById(inputs[i]);
-                var checkbox = document.getElementById(checkboxes[i]);
-
-                if (input.value === '' && !checkbox.checked) {
-                    input.classList.add('is-invalid');
-                    allValid = false;
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-
-                if (checkbox.checked) {
-                    input.disabled = true;
-                    input.removeAttribute('required');
-                } else {
-                    input.disabled = false;
-                    input.setAttribute('required', 'required');
-                }
-            }
-
-            var requiredInputs = ['name', 'quantity', 'price', 'brand', 'location'];
-            for (var i = 0; i < requiredInputs.length; i++) {
-                var input = document.getElementById(requiredInputs[i]);
-                if (input.value === '' || parseFloat(input.value.replace(/,/g, '')) < 0) {
-                    input.classList.add('is-invalid');
-                    if (input.id === 'quantity' && parseFloat(input.value.replace(/,/g, '')) <= 0) {
-                        input.nextElementSibling.textContent = 'La cantidad mínima es 1.';
-                    }
-                    if (input.id === 'price' && parseFloat(input.value.replace(/,/g, '')) < 0) {
-                        input.nextElementSibling.textContent = 'El precio no puede ser negativo.';
-                    }
-                    allValid = false;
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            }
-
-            var categoryInput = document.getElementById('category_id');
-            if (categoryInput.value === '') {
-                categoryInput.classList.add('is-invalid');
-                allValid = false;
-            } else {
-                categoryInput.classList.remove('is-invalid');
-            }
-
-            // Remove commas from price and quantity before submitting the form
-            var priceInput = document.getElementById('price');
-            priceInput.value = priceInput.value.replace(/,/g, '');
-
-            var quantityInput = document.getElementById('quantity');
-            quantityInput.value = quantityInput.value.replace(/,/g, '');
-
-            if (!allValid) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-
-            this.classList.add('was-validated');
-        });
-
-        document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('input', function () {
-                if (this.value !== '') {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                } else {
-                    this.classList.remove('is-valid');
+            // Inicializar validación para campos con valores preestablecidos
+            document.querySelectorAll('.form-control, .form-select').forEach(input => {
+                if (input.value && input.value !== '') {
+                    input.classList.add('is-valid');
                 }
             });
         });
-        
     </script>
-    
 </body>
 </html>
-@endsection

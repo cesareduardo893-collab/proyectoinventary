@@ -9,7 +9,7 @@ class LoginController extends Controller {
 
     public function index() {
         // Primero, muestra la vista de inicio de sesión
-        return view('login.index');
+        return view('Login.index'); // ← CAMBIADO a 'Login.index' con L mayúscula
     }
 
     public function login(Request $request) {
@@ -40,7 +40,6 @@ class LoginController extends Controller {
                 $name = $user['name']; // Suponiendo que el nombre está en el objeto user
                 $userId = $user['id'];
 
-
                 // Almacena el token y el rol en la sesión
                 $request->session()->put('token', $token);
                 $request->session()->put('role', $role);
@@ -66,10 +65,31 @@ class LoginController extends Controller {
     }
 
     public function logout(Request $request) {
-        // Elimina el token y el rol de la sesión
-        $request->session()->forget(['token', 'role']);
-
-        // Redirige al usuario a la página de inicio de sesión
+        try {
+            // URL base de la API
+            $baseApiUrl = config('app.backend_api');
+            $apiUrl = $baseApiUrl . '/api/logout';
+            
+            // Obtener el token de la sesión antes de eliminarlo
+            $token = $request->session()->get('token');
+            
+            // Si hay token, hacer logout en el backend
+            if ($token) {
+                Http::withToken($token)
+                    ->withOptions(['verify' => false])
+                    ->timeout(3) // Timeout corto para no bloquear
+                    ->post($apiUrl);
+            }
+            
+        } catch (\Exception $e) {
+            // Ignorar errores del backend, continuar con logout local
+            \Log::info('Logout del backend falló, continuando con logout local: ' . $e->getMessage());
+        }
+        
+        // Siempre limpiar la sesión localmente
+        $request->session()->flush();
+        $request->session()->regenerate();
+        
         return redirect()->route('login')->with('success', 'Has cerrado sesión correctamente.');
     }
 }

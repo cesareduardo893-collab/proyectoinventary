@@ -54,6 +54,10 @@
       @if (session('role') === '0' || session('role') === '1')
         <li><a href="{{ route('projects.index') }}"><i class="fas fa-project-diagram"></i><span> Proyectos</span></a></li>
       @endif
+      <!-- NUEVO MÓDULO DE UBICACIONES -->
+      @if (session('role') === '0' || session('role') === '1')
+        <li><a href="{{ route('locations.index') }}"><i class="fas fa-map-marker-alt"></i><span> Ubicaciones</span></a></li>
+      @endif
       <li><a href="{{ route('entrances.index') }}"><i class="fas fa-sign-in-alt"></i><span> Entradas</span></a></li>
       <li><a href="{{ route('outputs.index') }}"><i class="fas fa-sign-out-alt"></i><span> Salidas</span></a></li>
       @if (session('role') === '0' || session('role') === '1')
@@ -133,7 +137,7 @@
       </div>
     </div>
     <div class="footer-version">
-      Versión 3.0
+      Versión 4.0
     </div>
   </footer>
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\LoansExport;
 
 class LoanController extends Controller {
@@ -27,8 +28,8 @@ class LoanController extends Controller {
         $searchQuery = $request->input('query');
     
         // Parámetros de paginación
-        $page = $request->input('page', 1); // Página actual, por defecto es 1
-        $perPage = 100; // Número máximo de elementos por página
+        $page = $request->input('page', 1);
+        $perPage = 100;
     
         // Obtener el token de la sesión
         $token = $request->session()->get('token');
@@ -70,24 +71,7 @@ class LoanController extends Controller {
                 $downloadType = $request->input('download');
     
                 if ($downloadType === 'pdf') {
-                    $htmlContent = view('loans.pdf', compact('loans'))->render();
-                    $htmlFilePath = storage_path('temp/loans_temp_file.html');
-                    file_put_contents($htmlFilePath, $htmlContent);
-    
-                    if (!file_exists($htmlFilePath)) {
-                        return redirect()->back()->with('error', 'Error al generar el archivo HTML');
-                    }
-    
-                    $pdfFilePath = storage_path('temp/Prestamos.pdf');
-                    $command = '"' . env('WKHTMLTOPDF_PATH') . '" --lowquality "file:///' . $htmlFilePath . '" "' . $pdfFilePath . '"';
-    
-                    exec($command, $output, $returnVar);
-    
-                    if ($returnVar === 0) {
-                        return response()->download($pdfFilePath)->deleteFileAfterSend(true);
-                    } else {
-                        return redirect()->back()->with('error', 'Error al generar el PDF');
-                    }
+                    return $this->generatePDF($request);
                 } elseif ($downloadType === 'month_pdf') {
                     $monthResponse = Http::withToken($token)->withOptions(['verify' => false])->get($apiGetCountMonthLoanUrl);
     
@@ -232,6 +216,36 @@ class LoanController extends Controller {
         // Si la solicitud no fue exitosa, redirige o muestra un mensaje de error
         return redirect()->back()->with('error', 'Error al obtener los préstamos de la API');
     }
+
+    public function generatePDF(Request $request)
+    {
+        try {
+            $token = $request->session()->get('token');
+            $baseApiUrl = config('app.backend_api');
+
+            // Obtener préstamos desde la API
+            $response = Http::withToken($token)->withOptions(['verify' => false])->get($baseApiUrl . '/api/loans');
+
+            if ($response->successful()) {
+                $loans = $response->json()['data'] ?? $response->json();
+
+                // Usar DomPDF
+                $pdf = Pdf::loadView('loans.pdf', [
+                    'loans' => $loans,
+                    'title' => 'Lista de Préstamos'
+                ]);
+
+                $pdf->setPaper('A4', 'landscape');
+                return $pdf->download('prestamos.pdf');
+
+            } else {
+                return back()->with('error', 'No se pudieron obtener los préstamos para el PDF.');
+            }
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
+    }
     
     public function edit($id, Request $request) {
         // URL base de la API
@@ -275,7 +289,6 @@ class LoanController extends Controller {
             return response()->json(['error' => 'Error al devolver el préstamo.'], $response->status());
         }
     }
-
 
     public function destroy($id, Request $request) {
         // URL base de la API

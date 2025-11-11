@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\ProjectsExport;
 
 class ProjectController extends Controller {
 
-  
     public function index(Request $request)
     {
         // Verificación de rol, solo permite acceso a usuarios con rol distinto de 2
@@ -25,8 +25,8 @@ class ProjectController extends Controller {
         $searchQuery = $request->input('query');
     
         // Parámetros de paginación
-        $page = $request->input('page', 1); // Página actual, por defecto es 1
-        $perPage = 100; // Número máximo de elementos por página
+        $page = $request->input('page', 1);
+        $perPage = 100;
     
         // Obtener el token de la sesión
         $token = $request->session()->get('token');
@@ -63,29 +63,7 @@ class ProjectController extends Controller {
             if ($request->has('download')) {
                 $downloadType = $request->input('download');
                 if ($downloadType === 'pdf') {
-                    // Guardar HTML en un archivo temporal en una ubicación accesible
-                    $htmlContent = view('projects.pdf', compact('projects'))->render();
-                    $htmlFilePath = storage_path('temp/projects_temp_file.html');
-                    file_put_contents($htmlFilePath, $htmlContent);
-    
-                    // Verificar si el archivo HTML se genera correctamente
-                    if (!file_exists($htmlFilePath)) {
-                        return redirect()->back()->with('error', 'Error al generar el archivo HTML');
-                    }
-    
-                    // Definir la ruta de salida del PDF
-                    $pdfFilePath = storage_path('temp/Proyectos.pdf');
-                    $command = '"' . env('WKHTMLTOPDF_PATH') . '" --lowquality "file:///' . $htmlFilePath . '" "' . $pdfFilePath . '"';
-    
-                    // Ejecutar el comando
-                    exec($command, $output, $returnVar);
-    
-                    // Verificar si el PDF se generó correctamente
-                    if ($returnVar === 0) {
-                        return response()->download($pdfFilePath)->deleteFileAfterSend(true);
-                    } else {
-                        return redirect()->back()->with('error', 'Error al generar el PDF');
-                    }
+                    return $this->generatePDF($request);
                 } elseif ($downloadType === 'excel') {
                     $filePath = storage_path('temp/Proyectos.xlsx');
                     $export = new ProjectsExport($projects);
@@ -101,7 +79,36 @@ class ProjectController extends Controller {
         // Si la solicitud no fue exitosa, redirige o muestra un mensaje de error
         return redirect()->back()->with('error', 'Error al obtener los proyectos de la API');
     }
-    
+
+    public function generatePDF(Request $request)
+    {
+        try {
+            $token = $request->session()->get('token');
+            $baseApiUrl = config('app.backend_api');
+
+            // Obtener proyectos desde la API
+            $response = Http::withToken($token)->withOptions(['verify' => false])->get($baseApiUrl . '/api/projects');
+
+            if ($response->successful()) {
+                $projects = $response->json()['data'] ?? $response->json();
+
+                // Usar DomPDF
+                $pdf = Pdf::loadView('projects.pdf', [
+                    'projects' => $projects,
+                    'title' => 'Lista de Proyectos'
+                ]);
+
+                $pdf->setPaper('A4', 'landscape');
+                return $pdf->download('proyectos.pdf');
+
+            } else {
+                return back()->with('error', 'No se pudieron obtener los proyectos para el PDF.');
+            }
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
+    }
 
     public function create() {
         if (session('role') === '2') {
@@ -118,7 +125,7 @@ class ProjectController extends Controller {
             'company_name' => 'required|string|max:50',
             'rfc' => 'nullable|string',
             'address' => 'required|string|max:100',
-            'ubicacion' => 'nullable|string|max:100', // NUEVO CAMPO
+            'ubicacion' => 'nullable|string|max:100',
             'phone_number' => 'required|string|max:50',
             'email' => 'required|string|max:50|email',
             'client_name' => 'required|string|max:100',
@@ -183,7 +190,7 @@ class ProjectController extends Controller {
             'company_name' => 'string|max:50',
             'rfc' => 'nullable|string',
             'address' => 'string|max:100',
-            'ubicacion' => 'nullable|string|max:100', // NUEVO CAMPO
+            'ubicacion' => 'nullable|string|max:100',
             'phone_number' => 'string|max:50',
             'email' => 'string|max:50|email',
             'client_name' => 'string|max:100',
@@ -217,7 +224,7 @@ class ProjectController extends Controller {
             ],
             [
                 'name' => 'ubicacion',
-                'contents' => $validatedData['ubicacion'] ?? null, // NUEVO CAMPO
+                'contents' => $validatedData['ubicacion'] ?? null,
             ],
             [
                 'name' => 'phone_number',
@@ -268,7 +275,6 @@ class ProjectController extends Controller {
             return back()->withInput()->withErrors('Error al actualizar el proyecto: ' . $e->getMessage());
         }
     }
-
 
     public function destroy($id, Request $request) {
         // URL base de la API

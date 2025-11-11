@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\EntrancesExport;
 
 class EntranceController extends Controller {
@@ -53,24 +54,7 @@ class EntranceController extends Controller {
                 $downloadType = $request->input('download');
     
                 if ($downloadType === 'pdf') {
-                    $htmlContent = view('entrances.pdf', compact('entrances'))->render();
-                    $htmlFilePath = storage_path('temp/entrances_temp_file.html');
-                    file_put_contents($htmlFilePath, $htmlContent);
-    
-                    if (!file_exists($htmlFilePath)) {
-                        return redirect()->back()->with('error', 'Error al generar el archivo HTML');
-                    }
-    
-                    $pdfFilePath = storage_path('temp/Entradas.pdf');
-                    $command = '"' . env('WKHTMLTOPDF_PATH') . '" --lowquality "file:///' . $htmlFilePath . '" "' . $pdfFilePath . '"';
-    
-                    exec($command, $output, $returnVar);
-    
-                    if ($returnVar === 0) {
-                        return response()->download($pdfFilePath)->deleteFileAfterSend(true);
-                    } else {
-                        return redirect()->back()->with('error', 'Error al generar el PDF');
-                    }
+                    return $this->generatePDF($request);
                 } elseif ($downloadType === 'month_pdf') {
                     $monthResponse = Http::withToken($token)->withOptions(['verify' => false])->get($apiGetCountMonthEntranceUrl);
     
@@ -157,6 +141,43 @@ class EntranceController extends Controller {
             return view('entrances.index', compact('entrances', 'page', 'total', 'currentPage', 'lastPage', 'monthData'));
         } else {
             return 'Error: ' . $response->status();
+        }
+    }
+
+    public function generatePDF(Request $request)
+    {
+        try {
+            $token = $request->session()->get('token');
+            $baseApiUrl = config('app.backend_api');
+
+            // Obtener TODAS las entradas sin paginación
+            $apiUrl = $baseApiUrl . '/api/entrances?per_page=1000';
+            $response = Http::withToken($token)->withOptions(['verify' => false])->get($apiUrl);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Manejar estructura de datos
+                if (is_array($data) && array_key_exists('data', $data)) {
+                    $entrances = $data['data'];
+                } else {
+                    $entrances = $data;
+                }
+
+                if (empty($entrances)) {
+                    return back()->with('error', 'No hay entradas para generar el PDF.');
+                }
+
+                $pdf = Pdf::loadView('entrances.pdf', compact('entrances'));
+                $pdf->setPaper('A4', 'landscape');
+                return $pdf->download('entradas-' . date('Y-m-d') . '.pdf');
+
+            } else {
+                return back()->with('error', 'Error al obtener las entradas de la API');
+            }
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
         }
     }
 }

@@ -2,306 +2,455 @@
 
 @section('content')
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Base de Datos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        body {
+        .database-container {
             background-color: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
         }
-        .jumbotron {
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            padding: 2rem 2.5rem;
-            margin-bottom: 2rem;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-            border-color: #bd2130;
-        }
-        .alert {
-            margin-top: 1rem;
-        }
-        .custom-file-label::after {
-            content: "Browse";
-        }
-        .section-title {
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+        .database-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            border: none;
         }
-        .spinner-border-sm {
-            width: 1rem;
-            height: 1rem;
+        .database-card-header {
+            background: linear-gradient(135deg, #000000, #434343);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: 600;
         }
-        .backup-info {
-            background-color: #f8f9fa;
-            border-left: 4px solid #28a745;
+        .database-card-body {
+            padding: 25px;
+        }
+        .btn-database {
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-backup {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+        .btn-import {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+        .btn-reset {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+        .btn-database:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            color: white;
+        }
+        .alert-area {
+            min-height: 60px;
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+        .feature-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        .danger-zone {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+        .form-control-file {
+            border: 2px dashed #dee2e6;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .user-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+        .redirect-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
             padding: 10px;
             margin-top: 10px;
-            border-radius: 4px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
-<body>
-<div class="container mt-5">
-    <div class="jumbotron text-center">
-        <h1 class="display-4">Gestión de Base de Datos</h1>
-        <p class="lead">Realice operaciones de backup, importación y restablecimiento de la base de datos.</p>
-    </div>
+<body class="database-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="database-card">
+                    <div class="card-header database-card-header">
+                        <h4 class="mb-0"><i class="fas fa-database"></i> Gestión de Base de Datos</h4>
+                    </div>
+                    <div class="card-body database-card-body">
+                        
+                        <!-- Información del usuario -->
+                        <div class="user-info mb-4">
+                            <small>
+                                <i class="fas fa-user"></i> Usuario: {{ session('user_name') ?? 'Administrador' }} | 
+                                <i class="fas fa-key"></i> Rol: Administrador
+                            </small>
+                        </div>
 
-    <!-- Sección de Backup -->
-    <div class="jumbotron">
-        <h2 class="section-title">Exportar Base de Datos</h2>
-        <p>Haga clic en el botón a continuación para generar una copia de seguridad de la base de datos.</p>
-        <button id="backupButton" class="btn btn-primary btn-lg mt-3">Generar Backup</button>
-        <div id="backupMessage"></div>
-    </div>
+                        <!-- Backup Section -->
+                        <div class="row mb-5">
+                            <div class="col-md-8">
+                                <h5><i class="fas fa-download text-success"></i> Crear Respaldo</h5>
+                                <p class="feature-text">
+                                    Genera un archivo de respaldo completo de la base de datos. El archivo se descargará automáticamente en tu equipo.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                <button id="backupBtn" class="btn btn-database btn-backup">
+                                    <i class="fas fa-download"></i> Generar Backup
+                                    <div class="loading-spinner" id="backupSpinner"></div>
+                                </button>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <div id="backupMessage" class="alert-area"></div>
+                            </div>
+                        </div>
 
-    <!-- Sección de Importación -->
-    <div class="jumbotron">
-        <h2 class="section-title">Importar Base de Datos</h2>
-        <p>Seleccione un archivo SQL para importar a la base de datos.</p>
-        <div class="custom-file mb-3">
-            <input type="file" class="custom-file-input" id="sqlFile" accept=".sql,.txt">
-            <label class="custom-file-label" for="sqlFile">Seleccionar archivo SQL</label>
+                        <!-- Import Section -->
+                        <div class="row mb-5">
+                            <div class="col-md-8">
+                                <h5><i class="fas fa-upload text-primary"></i> Importar Base de Datos</h5>
+                                <p class="feature-text">
+                                    Restaura la base de datos desde un archivo SQL. <strong class="text-danger">Esta acción reemplazará todos los datos actuales.</strong>
+                                </p>
+                                <div class="redirect-notice">
+                                    <i class="fas fa-info-circle text-info"></i> Serás redirigido al login después de la importación.
+                                </div>
+                                <form id="importForm" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="form-group">
+                                        <input type="file" name="sql_file" id="sql_file" class="form-control-file" accept=".sql,.txt" required>
+                                        <small class="form-text text-muted">Selecciona un archivo SQL (máximo 10MB)</small>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                <button id="importBtn" class="btn btn-database btn-import" disabled>
+                                    <i class="fas fa-upload"></i> Importar SQL
+                                    <div class="loading-spinner" id="importSpinner"></div>
+                                </button>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <div id="importMessage" class="alert-area"></div>
+                            </div>
+                        </div>
+
+                        <!-- Reset Section -->
+                        <div class="row danger-zone p-3 rounded">
+                            <div class="col-md-8">
+                                <h5><i class="fas fa-exclamation-triangle text-danger"></i> Restablecer Base de Datos</h5>
+                                <p class="feature-text text-danger">
+                                    <strong>ADVERTENCIA CRÍTICA:</strong> Esta acción eliminará todos los datos y restaurará la base de datos a su estado inicial. Esta acción no se puede deshacer.
+                                </p>
+                                <div class="redirect-notice">
+                                    <i class="fas fa-info-circle text-info"></i> Serás redirigido al login después del restablecimiento.
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                <button id="resetBtn" class="btn btn-database btn-reset" data-toggle="modal" data-target="#confirmResetModal">
+                                    <i class="fas fa-trash"></i> Restablecer BD
+                                </button>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <div id="resetMessage" class="alert-area"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button id="importButton" class="btn btn-primary btn-lg mt-3" disabled>Importar Base de Datos</button>
-        <div id="importMessage"></div>
     </div>
 
-    
-    <div class="jumbotron">
-        <h2 class="section-title">Restablecer Base de Datos</h2>
-        <p class="text-danger">¡Advertencia! Esta acción eliminará todos los datos de la base de datos y no se puede deshacer.</p>
-        <button id="resetButton" class="btn btn-danger btn-lg mt-3" data-toggle="modal" data-target="#confirmResetModal">Restablecer Base de Datos</button>
-        <div id="resetMessage"></div>
-    </div>
-</div>
-
-<!-- Modal de confirmación para restablecimiento -->
-<div class="modal fade" id="confirmResetModal" tabindex="-1" role="dialog" aria-labelledby="confirmResetModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="confirmResetModalLabel">Confirmar Restablecimiento</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>¿Está seguro de que desea restablecer la base de datos? Esta acción eliminará todos los datos y no se puede deshacer.</p>
-                <p class="text-danger"><strong>¡Esta operación es irreversible!</strong></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="confirmReset">Sí, Restablecer</button>
+    <!-- Confirm Reset Modal -->
+    <div class="modal fade" id="confirmResetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirmar Restablecimiento</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <h6><strong>¡ADVERTENCIA!</strong></h6>
+                        <p class="mb-0">
+                            Estás a punto de eliminar <strong>TODOS LOS DATOS</strong> de la base de datos. Esto incluye:
+                        </p>
+                        <ul class="mt-2">
+                            <li>Todos los productos y categorías</li>
+                            <li>Todos los usuarios excepto el administrador</li>
+                            <li>Todos los registros de entradas, salidas y préstamos</li>
+                            <li>Todos los proveedores y proyectos</li>
+                        </ul>
+                        <p class="mt-2 mb-0"><strong>Esta acción NO se puede deshacer.</strong></p>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Nota:</strong> Serás redirigido automáticamente a la página de login después de completar esta acción.
+                    </div>
+                    <p>Para confirmar, escribe <strong>CONFIRMAR RESET</strong> en el siguiente campo:</p>
+                    <input type="text" id="confirmText" class="form-control" placeholder="Escribe CONFIRMAR RESET aquí">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmResetBtn" class="btn btn-danger" disabled>
+                        <i class="fas fa-trash"></i> Restablecer Base de Datos
+                        <div class="loading-spinner" id="resetSpinner"></div>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
     $(document).ready(function() {
-        // Mostrar nombre de archivo seleccionado
-        $('#sqlFile').on('change', function() {
-            var fileName = $(this).val().split('\\').pop();
-            $(this).next('.custom-file-label').html(fileName);
-            $('#importButton').prop('disabled', !fileName);
+        const token = '{{ $token }}';
+        const apiBackup = '{{ $apiBackup }}';
+        const apiImport = '{{ $apiImport }}';
+        const apiReset = '{{ $apiReset }}';
+        const loginRoute = '{{ route("login") }}';
+
+        console.log('🔐 Database Management - Sanctum Mode', {
+            token: token ? `✅ Present (${token.length} chars)` : '❌ MISSING',
+            apiBackup: apiBackup,
+            apiImport: apiImport,
+            apiReset: apiReset
         });
 
-        // Backup de base de datos
-         $(document).ready(function() {
-        $('#backupButton').on('click', function() {
-            let apiUrl = "{{ $apibakcup }}";
-            let token = "{{ $token }}";
+        // Habilitar botón de importar
+        $('#sql_file').change(function() {
+            $('#importBtn').prop('disabled', !$(this).val());
+        });
+
+        // Validación de confirmación
+        $('#confirmText').on('input', function() {
+            $('#confirmResetBtn').prop('disabled', $(this).val() !== 'CONFIRMAR RESET');
+        });
+
+        // Backup Database
+        $('#backupBtn').click(function() {
+            executeBackup();
+        });
+
+        // Import Database  
+        $('#importBtn').click(function() {
+            executeImport();
+        });
+
+        // Reset Database
+        $('#confirmResetBtn').click(function() {
+            executeReset();
+        });
+
+        // FUNCIONES PRINCIPALES
+        function executeBackup() {
+            const btn = $('#backupBtn');
+            const spinner = $('#backupSpinner');
+            const messageDiv = $('#backupMessage');
+            
+            btn.prop('disabled', true);
+            spinner.show();
+            messageDiv.html('');
+
+            const downloadLink = document.createElement('a');
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
 
             $.ajax({
-                url: apiUrl,
-                type: 'GET',
+                url: apiBackup,
+                method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
+                    'Accept': 'application/sql',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                xhrFields: {
+                    responseType: 'blob'
                 },
                 success: function(data) {
-                    $('#responseMessage').html('<div class="alert alert-success">Backup generado exitosamente en descargas.</div>');
-                    setTimeout(function() {
-                        $('#responseMessage').fadeOut('slow', function() {
-                            $(this).html('').show();
-                        });
-                    }, 3000);
+                    const blob = new Blob([data], { type: 'application/sql' });
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    downloadLink.href = url;
+                    downloadLink.download = 'backup_' + new Date().toISOString().replace(/[:.]/g, '-') + '.sql';
+                    downloadLink.click();
+                    
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(downloadLink);
+                    
+                    showAlert(messageDiv, '✅ Backup generado y descargado exitosamente', 'success');
                 },
-                error: function(xhr, status, error) {
-                    $('#responseMessage').html('<div class="alert alert-danger">Error al generar el backup.</div>');
-                    setTimeout(function() {
-                        $('#responseMessage').fadeOut('slow', function() {
-                            $(this).html('').show();
-                        });
-                    }, 3000);
+                error: function(xhr) {
+                    // En caso de error, redirigir al login
+                    showAlert(messageDiv, '❌ Error al generar backup. Redirigiendo al login...', 'danger');
+                    setTimeout(() => {
+                        window.location.href = loginRoute;
+                    }, 2000);
+                },
+                complete: function() {
+                    btn.prop('disabled', false);
+                    spinner.hide();
                 }
             });
-        });
+        }
 
-    });
+        function executeImport() {
+            const btn = $('#importBtn');
+            const spinner = $('#importSpinner');
+            const messageDiv = $('#importMessage');
+            const formData = new FormData($('#importForm')[0]);
 
-        // Importar base de datos
-        $('#importButton').on('click', function() {
-            let apiUrl = "{{ $apiimport }}";
-            let token = "{{ $token }}";
-            let fileInput = document.getElementById('sqlFile');
-            
-            if (fileInput.files.length === 0) {
-                showAlert('importMessage', 'Por favor, seleccione un archivo SQL.', 'danger');
+            if (!formData.get('sql_file')) {
+                showAlert(messageDiv, '⚠️ Por favor selecciona un archivo SQL', 'warning');
                 return;
             }
 
-            let $button = $(this);
-            let originalText = $button.html();
-            $button.html('<span class="spinner-border spinner-border-sm"></span> Importando...');
-            $button.prop('disabled', true);
-
-            showAlert('importMessage', 'Importando base de datos, por favor espere...', 'info');
-
-            let formData = new FormData();
-            formData.append('sql_file', fileInput.files[0]);
+            btn.prop('disabled', true);
+            spinner.show();
+            messageDiv.html('');
 
             $.ajax({
-                url: apiUrl,
-                type: 'POST',
+                url: apiImport,
+                method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer ' + token
+                    'Authorization': 'Bearer ' + token,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    showAlert('importMessage', response.message, 'success');
+                    showAlert(messageDiv, '✅ Base de datos importada correctamente. Redirigiendo al login...', 'success');
                     
-                    // Limpiar formulario
-                    $('#sqlFile').val('');
-                    $('.custom-file-label').html('Seleccionar archivo SQL');
-                    $button.html(originalText);
-                    $button.prop('disabled', true);
-
-                    // Cerrar sesión después de 3 segundos si es requerido
-                    if (response.logout_required) {
-                        setTimeout(() => {
-                            showAlert('importMessage', 'Cerrando sesión automáticamente...', 'warning');
-                            setTimeout(() => {
-                                window.location.href = "{{ url('/login') }}";
-                            }, 2000);
-                        }, 3000);
-                    }
+                    // Redirigir al login después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = loginRoute;
+                    }, 2000);
                 },
                 error: function(xhr) {
-                    $button.html(originalText);
-                    $button.prop('disabled', false);
-                    let errorMsg = xhr.responseJSON?.error || 'Error desconocido';
-                    showAlert('importMessage', 'Error al importar la base de datos: ' + errorMsg, 'danger');
+                    // En caso de error, también redirigir al login
+                    showAlert(messageDiv, '❌ Error en la importación. Redirigiendo al login...', 'danger');
+                    setTimeout(() => {
+                        window.location.href = loginRoute;
+                    }, 2000);
+                },
+                complete: function() {
+                    btn.prop('disabled', false);
+                    spinner.hide();
+                    $('#importForm')[0].reset();
+                    $('#importBtn').prop('disabled', true);
                 }
             });
-        });
+        }
 
-        // Restablecer base de datos
-        $('#confirmReset').on('click', function() {
-            let apiUrl = "{{ $apireset }}";
-            let token = "{{ $token }}";
+        function executeReset() {
+            const btn = $('#confirmResetBtn');
+            const spinner = $('#resetSpinner');
+            const messageDiv = $('#resetMessage');
+            const modal = $('#confirmResetModal');
 
-            let $button = $(this);
-            let originalText = $button.html();
-            $button.html('<span class="spinner-border spinner-border-sm"></span> Restableciendo...');
-            $button.prop('disabled', true);
-
-            $('#confirmResetModal').modal('hide');
-            showAlert('resetMessage', 'Restableciendo base de datos, por favor espere...', 'info');
+            btn.prop('disabled', true);
+            spinner.show();
+            messageDiv.html('');
 
             $.ajax({
-                url: apiUrl,
-                type: 'POST',
+                url: apiReset,
+                method: 'POST',
                 headers: {
                     'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
+                data: JSON.stringify({
+                    confirmed_by: '{{ session("user_name") ?? "Administrador" }}'
+                }),
                 success: function(response) {
-                    showAlert('resetMessage', response.message, 'success');
+                    showAlert(messageDiv, '✅ Base de datos restablecida correctamente. Redirigiendo al login...', 'success');
+                    modal.modal('hide');
                     
-                    // Cerrar sesión después de 3 segundos si es requerido
-                    if (response.logout_required) {
-                        setTimeout(() => {
-                            showAlert('resetMessage', 'Cerrando sesión automáticamente...', 'warning');
-                            setTimeout(() => {
-                                window.location.href = "{{ url('/login') }}";
-                            }, 2000);
-                        }, 3000);
-                    }
+                    // Redirigir al login después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = loginRoute;
+                    }, 2000);
                 },
                 error: function(xhr) {
-                    $button.html(originalText);
-                    $button.prop('disabled', false);
-                    let errorMsg = xhr.responseJSON?.error || 'Error desconocido';
-                    showAlert('resetMessage', 'Error al restablecer la base de datos: ' + errorMsg, 'danger');
+                    // En caso de error, también redirigir al login
+                    showAlert(messageDiv, '❌ Error al restablecer la base de datos. Redirigiendo al login...', 'danger');
+                    setTimeout(() => {
+                        window.location.href = loginRoute;
+                    }, 2000);
+                    btn.prop('disabled', false);
+                },
+                complete: function() {
+                    spinner.hide();
+                    modal.modal('hide');
+                    $('#confirmText').val('');
                 }
             });
+        }
+
+        // FUNCIONES AUXILIARES
+        function showAlert(container, message, type) {
+            const html = `
+                <div class="alert alert-${type} alert-dismissible fade show">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                </div>
+            `;
+            container.html(html);
+        }
+
+        $('#confirmResetModal').on('hidden.bs.modal', function() {
+            $('#confirmText').val('');
+            $('#confirmResetBtn').prop('disabled', true);
         });
-
-        // Función auxiliar para mostrar alertas
-        function showAlert(containerId, message, type) {
-            let icon = '';
-            switch(type) {
-                case 'success': icon = '✓'; break;
-                case 'danger': icon = '❌'; break;
-                case 'warning': icon = '⚠️'; break;
-                default: icon = 'ℹ️';
-            }
-            
-            let html = `<div class="alert alert-${type} alert-dismissible fade show">
-                ${icon} ${message}
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-            </div>`;
-            $('#' + containerId).html(html);
-        }
-
-        // Función para formatear tamaño de archivo
-        function formatFileSize(bytes) {
-            if (!bytes || bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
     });
-
-    // Función para copiar enlace al portapapeles
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(function() {
-            // Mostrar mensaje de éxito
-            let alertDiv = $('<div class="alert alert-info alert-dismissible fade show mt-2">📋 Enlace copiado al portapapeles</div>');
-            $('#backupMessage').append(alertDiv);
-            setTimeout(() => alertDiv.alert('close'), 3000);
-        }, function(err) {
-            console.error('Error al copiar: ', err);
-        });
-    }
-</script>
+    </script>
 </body>
 </html>
 @endsection
